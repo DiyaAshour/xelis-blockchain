@@ -318,6 +318,11 @@ impl Serializer for StepRequest<'_> {
                 let min_topoheight = reader.read_u64()?;
                 let max_topoheight = reader.read_u64()?;
 
+                if min_topoheight > max_topoheight {
+                    debug!("Invalid min topoheight in Step Request");
+                    return Err(ReaderError::InvalidValue)
+                }
+
                 let page = Option::read(reader)?;
                 if let Some(page_number) = &page {
                     if *page_number == 0 {
@@ -880,5 +885,16 @@ impl Serializer for StepResponse {
         };
         // 1 for the id
         size + 1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_contracts_events_invalid_range() {
+        let request = StepRequest::ContractsEvents(Cow::Owned(Hash::zero()), 10, 9, None);
+        assert!(StepRequest::from_bytes(&request.to_bytes()).is_err());
     }
 }
